@@ -52,7 +52,7 @@ export default function Reports({ reports }) {
                 <tr>
                   <th>Task</th>
                   <th>Status</th>
-                  <th>Total Hours</th>
+                  <th>Work Hours</th>
                   <th>Resources</th>
                   <th>Cost</th>
                 </tr>
@@ -72,11 +72,20 @@ export default function Reports({ reports }) {
                         <span className="muted small">None</span>
                       ) : (
                         <ul className="report-assign-list">
-                          {t.assignments.map((a) => (
-                            <li key={a.resourceId}>
-                              {a.resourceName} — {a.hours}h × {fmtMoney(a.costPerHour)} = <strong>{fmtMoney(a.subtotal)}</strong>
-                            </li>
-                          ))}
+                          {t.assignments.map((a) => {
+                            const isCost = a.resourceType === 'cost';
+                            return (
+                              <li key={a.resourceId}>
+                                {a.resourceName}{' '}
+                                <span className={`type-tag type-tag-sm ${isCost ? 'type-cost' : 'type-work'}`}>
+                                  {isCost ? 'Cost' : 'Work'}
+                                </span>{' '}
+                                — {isCost
+                                  ? `${a.units} × ${fmtMoney(a.unitCost)}`
+                                  : `${a.units}h × ${fmtMoney(a.unitCost)}`} = <strong>{fmtMoney(a.subtotal)}</strong>
+                              </li>
+                            );
+                          })}
                         </ul>
                       )}
                     </td>
@@ -107,34 +116,49 @@ export default function Reports({ reports }) {
               <thead>
                 <tr>
                   <th>Resource</th>
-                  <th>Role</th>
+                  <th>Type</th>
+                  <th>Role / —</th>
                   <th>Rate</th>
-                  <th>Total Hours</th>
+                  <th>Used</th>
                   <th>Tasks</th>
-                  <th>Earnings</th>
+                  <th>Total Cost</th>
                 </tr>
               </thead>
               <tbody>
-                {resources.map((r) => (
-                  <tr key={r.id}>
-                    <td><strong>{r.name}</strong></td>
-                    <td>{r.role || <span className="muted">—</span>}</td>
-                    <td>{fmtMoney(r.costPerHour)}/h</td>
-                    <td>{r.totalHours}h</td>
-                    <td>
-                      {r.tasks.length === 0 ? (
-                        <span className="muted small">Not assigned</span>
-                      ) : (
-                        <ul className="report-assign-list">
-                          {r.tasks.map((t) => (
-                            <li key={t.taskId}>{t.taskName} — {t.hours}h</li>
-                          ))}
-                        </ul>
-                      )}
-                    </td>
-                    <td className="cost-cell"><strong>{fmtMoney(r.totalEarnings)}</strong></td>
-                  </tr>
-                ))}
+                {resources.map((r) => {
+                  const isCost = r.type === 'cost';
+                  return (
+                    <tr key={r.id}>
+                      <td><strong>{r.name}</strong></td>
+                      <td>
+                        <span className={`type-tag type-tag-sm ${isCost ? 'type-cost' : 'type-work'}`}>
+                          {isCost ? 'Cost' : 'Work'}
+                        </span>
+                      </td>
+                      <td>{isCost ? <span className="muted">—</span> : (r.role || <span className="muted">—</span>)}</td>
+                      <td>
+                        {isCost
+                          ? `${fmtMoney(r.cost)} / unit`
+                          : `${fmtMoney(r.costPerHour)} / h`}
+                      </td>
+                      <td>{isCost ? `×${r.totalUnits}` : `${r.totalUnits}h`}</td>
+                      <td>
+                        {r.tasks.length === 0 ? (
+                          <span className="muted small">Not assigned</span>
+                        ) : (
+                          <ul className="report-assign-list">
+                            {r.tasks.map((t) => (
+                              <li key={t.taskId}>
+                                {t.taskName} — {isCost ? `×${t.units}` : `${t.units}h`}
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </td>
+                      <td className="cost-cell"><strong>{fmtMoney(r.totalEarnings)}</strong></td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

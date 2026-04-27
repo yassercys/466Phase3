@@ -12,7 +12,20 @@
       "status": "completed",
       "startDate": "",
       "endDate": "",
-      "assignments": []
+      "assignments": [
+        {
+          "resourceId": "r_1777322680068_378",
+          "hours": 1
+        },
+        {
+          "resourceId": "r_1777322688784_21",
+          "hours": 1
+        },
+        {
+          "resourceId": "r_1777323319166_140",
+          "hours": 2.25
+        }
+      ]
     },
     {
       "id": "t_1777315169587_689",
@@ -22,7 +35,12 @@
       "status": "pending",
       "startDate": "2026-04-21",
       "endDate": "2026-04-27",
-      "assignments": []
+      "assignments": [
+        {
+          "resourceId": "r_1777323319166_140",
+          "hours": 3
+        }
+      ]
     },
     {
       "id": "t_1777315221061_68",
@@ -32,8 +50,47 @@
       "status": "pending",
       "startDate": "",
       "endDate": "",
-      "assignments": []
+      "assignments": [
+        {
+          "resourceId": "r_1777322680068_378",
+          "hours": 3
+        }
+      ]
     }
   ],
-  "resources": []
+  "resources": [
+    {
+      "type": "work",
+      "id": "r_1777322680068_378",
+      "name": "tester",
+      "role": "tester",
+      "costPerHour": 15
+    },
+    {
+      "type": "work",
+      "id": "r_1777322688784_21",
+      "name": "aa",
+      "role": "aa",
+      "costPerHour": 0.04
+    },
+    {
+      "type": "cost",
+      "id": "r_1777323319166_140",
+      "name": "laptop",
+      "cost": 1000
+    },
+    {
+      "type": "work",
+      "id": "r_1777323336243_846",
+      "name": "yasser",
+      "role": "BA",
+      "costPerHour": 40
+    },
+    {
+      "type": "cost",
+      "id": "r_1777323353329_160",
+      "name": "domain",
+      "cost": 200
+    }
+  ]
 }

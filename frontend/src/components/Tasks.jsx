@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import Modal from './Modal.jsx';
 import { api } from '../api.js';
 
@@ -24,6 +24,15 @@ export default function Tasks({ tasks, resources, refresh, showToast }) {
   const [assignTask, setAssignTask] = useState(null);
   const [assignForm, setAssignForm] = useState({ resourceId: '', hours: 1 });
   const [filter, setFilter] = useState('all');
+
+  const resourceById = useMemo(() => {
+    const map = {};
+    resources.forEach((r) => { map[r.id] = r; });
+    return map;
+  }, [resources]);
+
+  const selectedResource = assignForm.resourceId ? resourceById[assignForm.resourceId] : null;
+  const selectedIsCost = selectedResource && selectedResource.type === 'cost';
 
   const openCreate = () => {
     setForm(emptyForm);
@@ -74,8 +83,9 @@ export default function Tasks({ tasks, resources, refresh, showToast }) {
 
   const openAssign = (task) => {
     setAssignTask(task);
+    const first = resources[0];
     setAssignForm({
-      resourceId: resources[0]?.id || '',
+      resourceId: first ? first.id : '',
       hours: 1
     });
   };
@@ -92,10 +102,10 @@ export default function Tasks({ tasks, resources, refresh, showToast }) {
         hours: Number(assignForm.hours)
       });
       showToast('Resource assigned', 'success');
-      setAssignForm({ resourceId: resources[0]?.id || '', hours: 1 });
       const updated = await api.listTasks();
       const next = updated.find((x) => x.id === assignTask.id);
       setAssignTask(next || null);
+      setAssignForm({ resourceId: assignForm.resourceId, hours: 1 });
       await refresh();
     } catch (err) {
       showToast(err.message, 'error');
@@ -126,11 +136,7 @@ export default function Tasks({ tasks, resources, refresh, showToast }) {
           <p className="muted">Create tasks and assign resources to track cost.</p>
         </div>
         <div className="view-actions">
-          <select
-            className="select"
-            value={filter}
-            onChange={(e) => setFilter(e.target.value)}
-          >
+          <select className="select" value={filter} onChange={(e) => setFilter(e.target.value)}>
             <option value="all">All statuses</option>
             {STATUSES.map((s) => (
               <option key={s} value={s}>{s}</option>
@@ -181,10 +187,18 @@ export default function Tasks({ tasks, resources, refresh, showToast }) {
                     <div className="assignments-cell">
                       {(t.assignments || []).length === 0 && <span className="muted small">None</span>}
                       {(t.assignments || []).map((a) => {
-                        const r = resources.find((x) => x.id === a.resourceId);
+                        const r = resourceById[a.resourceId];
+                        if (!r) {
+                          return (
+                            <span key={a.resourceId} className="chip">
+                              Removed · {a.hours}
+                            </span>
+                          );
+                        }
+                        const isCost = r.type === 'cost';
                         return (
-                          <span key={a.resourceId} className="chip">
-                            {r ? r.name : 'Removed'} · {a.hours}h
+                          <span key={a.resourceId} className={`chip ${isCost ? 'chip-cost' : 'chip-work'}`}>
+                            {r.name} · {isCost ? `×${a.hours}` : `${a.hours}h`}
                           </span>
                         );
                       })}
@@ -282,14 +296,31 @@ export default function Tasks({ tasks, resources, refresh, showToast }) {
             ) : (
               <ul className="assign-list">
                 {(assignTask.assignments || []).map((a) => {
-                  const r = resources.find((x) => x.id === a.resourceId);
-                  const cost = r ? Number(a.hours) * Number(r.costPerHour) : 0;
+                  const r = resourceById[a.resourceId];
+                  if (!r) {
+                    return (
+                      <li key={a.resourceId}>
+                        <div className="muted">Removed resource</div>
+                        <button className="btn btn-sm btn-danger" onClick={() => removeAssignment(a.resourceId)}>Remove</button>
+                      </li>
+                    );
+                  }
+                  const isCost = r.type === 'cost';
+                  const unitCost = isCost ? Number(r.cost) : Number(r.costPerHour);
+                  const subtotal = unitCost * Number(a.hours);
                   return (
                     <li key={a.resourceId}>
                       <div>
-                        <div className="strong">{r ? r.name : 'Removed resource'}</div>
+                        <div className="strong">
+                          {r.name}{' '}
+                          <span className={`type-tag type-tag-sm ${isCost ? 'type-cost' : 'type-work'}`}>
+                            {isCost ? 'Cost' : 'Work'}
+                          </span>
+                        </div>
                         <div className="muted small">
-                          {a.hours}h × {r ? fmtMoney(r.costPerHour) : '$0.00'} = {fmtMoney(cost)}
+                          {isCost
+                            ? `${a.hours} × ${fmtMoney(r.cost)} = ${fmtMoney(subtotal)}`
+                            : `${a.hours}h × ${fmtMoney(r.costPerHour)} = ${fmtMoney(subtotal)}`}
                         </div>
                       </div>
                       <button className="btn btn-sm btn-danger" onClick={() => removeAssignment(a.resourceId)}>Remove</button>
@@ -314,29 +345,43 @@ export default function Tasks({ tasks, resources, refresh, showToast }) {
                     value={assignForm.resourceId}
                     onChange={(e) => setAssignForm({ ...assignForm, resourceId: e.target.value })}
                   >
-                    {resources.map((r) => (
-                      <option key={r.id} value={r.id}>
-                        {r.name} ({fmtMoney(r.costPerHour)}/h)
-                      </option>
-                    ))}
+                    {resources.map((r) => {
+                      const isCost = r.type === 'cost';
+                      const rate = isCost
+                        ? `${fmtMoney(r.cost)} fixed`
+                        : `${fmtMoney(r.costPerHour)}/h`;
+                      const tag = isCost ? '[Cost]' : '[Work]';
+                      return (
+                        <option key={r.id} value={r.id}>
+                          {tag} {r.name} ({rate})
+                        </option>
+                      );
+                    })}
                   </select>
                 </label>
                 <label>
-                  Hours
+                  {selectedIsCost ? 'Quantity' : 'Hours'}
                   <input
                     type="number"
-                    min="0.25"
-                    step="0.25"
+                    min={selectedIsCost ? '1' : '0.25'}
+                    step={selectedIsCost ? '1' : '0.25'}
                     value={assignForm.hours}
                     onChange={(e) => setAssignForm({ ...assignForm, hours: e.target.value })}
                   />
                 </label>
               </div>
+              {selectedResource && (
+                <div className="muted small">
+                  {selectedIsCost
+                    ? `Total = quantity × ${fmtMoney(selectedResource.cost)}`
+                    : `Total = hours × ${fmtMoney(selectedResource.costPerHour)}`}
+                </div>
+              )}
               <div className="form-actions">
                 <button type="submit" className="btn btn-primary">Assign</button>
               </div>
               <p className="muted small">
-                Tip: assigning the same resource again updates its hours.
+                Tip: assigning the same resource again updates its hours/quantity.
               </p>
             </form>
           )}
