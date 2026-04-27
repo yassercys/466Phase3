@@ -1,0 +1,39 @@
+{
+  "project": {
+    "name": "My Project",
+    "description": "A sample project managed with the PM mini-app."
+  },
+  "tasks": [
+    {
+      "id": "t_1777315081102_348",
+      "name": "test",
+      "description": "just test",
+      "duration": 5,
+      "status": "completed",
+      "startDate": "",
+      "endDate": "",
+      "assignments": []
+    },
+    {
+      "id": "t_1777315169587_689",
+      "name": "task2",
+      "description": "task2",
+      "duration": 1,
+      "status": "pending",
+      "startDate": "2026-04-21",
+      "endDate": "2026-04-27",
+      "assignments": []
+    },
+    {
+      "id": "t_1777315221061_68",
+      "name": "asas",
+      "description": "",
+      "duration": 1,
+      "status": "pending",
+      "startDate": "",
+      "endDate": "",
+      "assignments": []
+    }
+  ],
+  "resources": []
+}
